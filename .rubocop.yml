@@ -1,0 +1,43 @@
+require:
+  - rubocop-rails
+  - rubocop-rspec
+AllCops:
+  TargetRubyVersion: 3.0.5
+  Exclude:
+    - db/**/*
+    - bin/**/*
+    - config/puma.rb
+    - config/routes.rb
+  NewCops: enable
+Layout/LineLength:
+  Max: 120
+Metrics/BlockLength:
+  CountAsOne: ['array', 'hash']
+  IgnoredMethods: ['describe', 'context', 'shared_examples', 'namespace']
+Metrics/ClassLength:
+  CountAsOne: [ 'array', 'hash' ]
+Metrics/MethodLength:
+  CountAsOne: ['array', 'hash']
+Metrics/ModuleLength:
+  CountAsOne: [ 'array', 'hash' ]
+Rails:
+  Enabled: true
+Rails/UnknownEnv:
+  Environments:
+    - beta
+    - development
+    - post
+    - production
+    - staging
+    - test
+    - uat
+RSpec/ExampleLength:
+  CountAsOne: ['array', 'hash']
+RSpec/MultipleMemoizedHelpers:
+  Max: 7
+RSpec/NestedGroups:
+  Max: 4
+Style/Documentation:
+  Enabled: false
+Style/SymbolArray:
+  Enabled: false
