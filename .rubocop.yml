@@ -1,19 +1,20 @@
 require:
   - rubocop-rails
   - rubocop-rspec
+  - rubocop-performance
 AllCops:
   TargetRubyVersion: 3.0.5
   Exclude:
+    - app/views/**/*
+    - bin/*
     - db/**/*
-    - bin/**/*
-    - config/puma.rb
-    - config/routes.rb
+    - vendor/bundle/**/*
   NewCops: enable
 Layout/LineLength:
   Max: 120
 Metrics/BlockLength:
   CountAsOne: ['array', 'hash']
-  IgnoredMethods: ['describe', 'context', 'shared_examples', 'namespace']
+  IgnoredMethods: ['describe', 'context', 'shared_examples', 'namespace', 'factory']
 Metrics/ClassLength:
   CountAsOne: [ 'array', 'hash' ]
 Metrics/MethodLength:
@@ -22,6 +23,8 @@ Metrics/ModuleLength:
   CountAsOne: [ 'array', 'hash' ]
 Rails:
   Enabled: true
+Rails/DynamicFindBy:
+  Enabled: false
 Rails/UnknownEnv:
   Environments:
     - beta
