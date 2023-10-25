@@ -3,30 +3,31 @@ module Flights
     API_KEY = ENV.fetch('API_KEY', nil)
     BASE_URL = 'http://api.aviationstack.com/v1/flights'.freeze
 
-    attr_reader :incoming_flight_number, :carrier_iata, :carrier_icao, :flight_number
+    attr_reader :incoming_flight_number, :airline_iata, :airline_icao, :flight_number
 
     def initialize(incoming_flight_number:)
       @incoming_flight_number = incoming_flight_number
-      @carrier_iata = nil
-      @carrier_icao = nil
-      @flight_number = extract_flight_number
-      @full_flight_number = full_flight_number
+      @flight_number = nil
+      @airline_iata = nil
+      @airline_icao = nil
     end
 
     def fetch_flight_info
       extract_prefix
+      extract_numbers
+
       uri = URI(BASE_URL)
-      uri.query = URI.encode_www_form(access_key: API_KEY, flight_number: full_flight_number)
+      uri.query = URI.encode_www_form(build_flight_params)
 
       response = Net::HTTP.get_response(uri)
       api_response = JSON.parse(response.body)
 
-      if api_response['results'].nil?
-        build_fail_response("No route found for flight number #{full_flight_number}")
-      elsif api_response['results'].size == 1
-        build_single_route_response(api_response['results'].first)
+      if api_response['data'].empty?
+        build_fail_response("No route found for flight number #{incoming_flight_number}")
+      elsif api_response['pagination']['count'] == 1
+        build_single_route_response(api_response['data'].first)
       else
-        build_multiple_route_response(api_response['results'])
+        build_multiple_route_response(api_response['data'])
       end
     rescue StandardError => e
       build_fail_response(e.message)
@@ -35,23 +36,30 @@ module Flights
     private
 
     def extract_prefix
-      non_numeric_part = incoming_flight_number.scan(/\D/).join
-
+      non_numeric_part = if incoming_flight_number[/\A(\d*[A-Za-z]+)/, 1].length < 2
+                           incoming_flight_number[0..1]
+                         else
+                           incoming_flight_number[/\A(\d*[A-Za-z]+)/, 1]
+                         end
       if non_numeric_part.length == 2
-        @carrier_iata = non_numeric_part.upcase
+        @airline_iata = non_numeric_part.upcase
       elsif non_numeric_part.length == 3
-        @carrier_icao = non_numeric_part.upcase
+        @airline_icao = non_numeric_part.upcase
       end
     end
 
-    def extract_flight_number
-      numeric_part = incoming_flight_number.scan(/\d/).join
+    def extract_numbers
+      prefix = extract_prefix
+      @flight_number = incoming_flight_number.sub(/^#{prefix}/, '').rjust(4, '0')
+    end
 
-      if numeric_part.length == 4
-        numeric_part
-      elsif numeric_part.length < 4
-        numeric_part.rjust(4, '0')
-      end
+    def build_flight_params
+      {
+        access_key: API_KEY,
+        flight_number: flight_number,
+        airline_iata: airline_iata,
+        airline_icao: airline_icao
+      }.compact
     end
 
     def build_single_route_response(route_data)
@@ -126,14 +134,6 @@ module Flights
 
     def calculate_total_distance(routes_data)
       routes_data.sum { |route| route['distance'] }
-    end
-
-    def full_flight_number
-      if carrier_icao.nil?
-        @full_flight_number = "#{carrier_iata}#{flight_number}"
-      elsif carrier_iata.nil?
-        @full_flight_number = "#{carrier_icao}#{flight_number}"
-      end
     end
   end
 end
